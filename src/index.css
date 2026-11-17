@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-report-container {
+    position: static !important;
+    overflow: visible !important;
+    max-height: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+}
+
+@keyframes cart-bounce-pulse {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 0 rgba(13, 122, 111, 0.45);
+  }
+  25% {
+    transform: translateY(-5px) scale(1.06);
+    box-shadow: 0 0 0 6px rgba(13, 122, 111, 0.24);
+  }
+  55% {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 0 0 11px rgba(13, 122, 111, 0);
+  }
+  80% {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 0 0 rgba(13, 122, 111, 0);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 0 rgba(13, 122, 111, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-cart-bounce {
+    animation: cart-bounce-pulse 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}

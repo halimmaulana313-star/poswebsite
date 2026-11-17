@@ -1,0 +1,452 @@
+{
+  "entities": {
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Public storefront configuration and integrated payment display settings for the UMKM.",
+      "type": "object",
+      "properties": {
+        "storeName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Display name of the UMKM culinary business."
+        },
+        "tagline": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160,
+          "description": "Short description shown on the storefront hero."
+        },
+        "address": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 200,
+          "description": "Physical outlet address."
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 20,
+          "pattern": "^[0-9+\\-\\s]+$",
+          "description": "Customer service WhatsApp number."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Whether the store is currently accepting online orders."
+        },
+        "taxPercent": {
+          "type": "number",
+          "description": "Tax percentage applied at checkout (0-25)."
+        },
+        "serviceFee": {
+          "type": "number",
+          "description": "Flat service/packaging fee in IDR."
+        },
+        "qrisMerchantName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Merchant name printed on dynamic QRIS payment."
+        },
+        "qrisNmid": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 40,
+          "pattern": "^[A-Za-z0-9\\-]+$",
+          "description": "National Merchant ID for QRIS display."
+        },
+        "qrisImageUrl": {
+          "type": "string",
+          "maxLength": 260000,
+          "description": "Uploaded custom QRIS payment image (compressed data URL or image URL)."
+        },
+        "bankName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40,
+          "description": "Bank name for Virtual Account / transfer payments."
+        },
+        "bankAccountNumber": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 30,
+          "pattern": "^[0-9\\-]+$",
+          "description": "Account / VA prefix number."
+        },
+        "bankAccountHolder": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Account holder name."
+        },
+        "ewalletLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Supported e-wallet label and recipient number."
+        },
+        "enabledPayments": {
+          "type": "array",
+          "description": "Enabled payment method keys (max 4)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last config update."
+        }
+      },
+      "required": [
+        "storeName",
+        "tagline",
+        "address",
+        "whatsappNumber",
+        "isOpen",
+        "taxPercent",
+        "serviceFee",
+        "qrisMerchantName",
+        "qrisNmid",
+        "bankName",
+        "bankAccountNumber",
+        "bankAccountHolder",
+        "ewalletLabel",
+        "enabledPayments",
+        "updatedAt"
+      ]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Food, beverage, or snack item sold on the UMKM storefront.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Coffee & Espresso",
+            "Non-Coffee",
+            "Pastry & Makanan",
+            "Paket Ngopi",
+            "Makanan Berat",
+            "Minuman",
+            "Camilan",
+            "Paket Hemat"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 300
+        },
+        "price": {
+          "type": "number"
+        },
+        "imageUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "isAvailable": {
+          "type": "boolean"
+        },
+        "isFeatured": {
+          "type": "boolean"
+        },
+        "prepMinutes": {
+          "type": "number"
+        },
+        "sortOrder": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "name",
+        "category",
+        "description",
+        "price",
+        "imageUrl",
+        "isAvailable",
+        "isFeatured",
+        "prepMinutes",
+        "sortOrder",
+        "updatedAt"
+      ]
+    },
+    "QrTable": {
+      "title": "QrTable",
+      "description": "Shareable table or pickup QR barcode created by the Web Master.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "area": {
+          "type": "string",
+          "enum": ["Dine-In", "Takeaway", "Delivery", "Event"]
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["code", "label", "area", "isActive", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer F&B order with integrated payment state (non-PII operational record).",
+      "type": "object",
+      "properties": {
+        "orderCode": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "tableCode": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tableLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "orderType": {
+          "type": "string",
+          "enum": ["dine_in", "takeaway", "delivery"]
+        },
+        "customerAlias": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "customerUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "items": {
+          "type": "array",
+          "description": "Bounded list of 1 to 25 ordered menu items."
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "taxAmount": {
+          "type": "number"
+        },
+        "serviceFee": {
+          "type": "number"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["qris", "va_bank", "ewallet", "cashier"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["unpaid", "verifying", "paid", "failed"]
+        },
+        "paymentRef": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "orderStatus": {
+          "type": "string",
+          "enum": ["new", "preparing", "ready", "completed", "cancelled"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderCode",
+        "tableCode",
+        "tableLabel",
+        "orderType",
+        "customerAlias",
+        "items",
+        "subtotal",
+        "taxAmount",
+        "serviceFee",
+        "totalAmount",
+        "paymentMethod",
+        "paymentStatus",
+        "paymentRef",
+        "orderStatus",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OrderPrivateContact": {
+      "title": "OrderPrivateContact",
+      "description": "Isolated PII contact record for an order (phone, optional delivery address).",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "customerPhone": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 25
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "maxLength": 250
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["orderId", "customerPhone", "deliveryAddress", "createdAt"]
+    },
+    "OrderStatusLookup": {
+      "title": "OrderStatusLookup",
+      "description": "Public non-PII status lookup index keyed by orderCode for guest order tracking.",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderCode": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "tableLabel": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["qris", "va_bank", "ewallet", "cashier"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["unpaid", "verifying", "paid", "failed"]
+        },
+        "orderStatus": {
+          "type": "string",
+          "enum": ["new", "preparing", "ready", "completed", "cancelled"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderId",
+        "orderCode",
+        "tableLabel",
+        "totalAmount",
+        "paymentMethod",
+        "paymentStatus",
+        "orderStatus",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authoritative Web Master / Cashier RBAC registry.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 120
+        },
+        "role": {
+          "type": "string",
+          "enum": ["owner", "cashier"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/store_config/{storeId}": {
+      "schema": { "$ref": "#/entities/StoreConfig" },
+      "description": "Singleton storefront & payment settings document (main)."
+    },
+    "/menu_items/{itemId}": {
+      "schema": { "$ref": "#/entities/MenuItem" },
+      "description": "UMKM food & beverage catalog."
+    },
+    "/qr_tables/{tableId}": {
+      "schema": { "$ref": "#/entities/QrTable" },
+      "description": "Shareable QR table & pickup barcodes managed by Web Master."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders and integrated payment statuses."
+    },
+    "/orders/{orderId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/OrderPrivateContact" },
+      "description": "Isolated customer PII (WhatsApp phone & delivery address)."
+    },
+    "/order_status_lookup/{orderCode}": {
+      "schema": { "$ref": "#/entities/OrderStatusLookup" },
+      "description": "Non-PII order status lookup keyed by human-readable orderCode."
+    },
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Authoritative admin/cashier role registry."
+    }
+  }
+}

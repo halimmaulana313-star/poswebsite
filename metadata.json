@@ -1,0 +1,8 @@
+{
+  "name": "SajiLokal — Pemesanan Kuliner UMKM",
+  "description": "Platform pemesanan online makanan dan minuman UMKM dengan sistem pembayaran terintegrasi, dashboard Web Master, dan generator barcode QR meja pelanggan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

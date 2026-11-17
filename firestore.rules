@@ -1,0 +1,300 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Primitive Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'halimmaulana313@gmail.com'
+      );
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidStoreConfig(data) {
+      return data.keys().hasAll([
+          'storeName', 'tagline', 'address', 'whatsappNumber', 'isOpen',
+          'taxPercent', 'serviceFee', 'qrisMerchantName', 'qrisNmid',
+          'bankName', 'bankAccountNumber', 'bankAccountHolder',
+          'ewalletLabel', 'enabledPayments', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'storeName', 'tagline', 'address', 'whatsappNumber', 'isOpen',
+          'taxPercent', 'serviceFee', 'qrisMerchantName', 'qrisNmid', 'qrisImageUrl',
+          'bankName', 'bankAccountNumber', 'bankAccountHolder',
+          'ewalletLabel', 'enabledPayments', 'updatedAt'
+        ])
+        && data.storeName is string && data.storeName.size() >= 2 && data.storeName.size() <= 80
+        && data.tagline is string && data.tagline.size() >= 2 && data.tagline.size() <= 160
+        && data.address is string && data.address.size() >= 4 && data.address.size() <= 200
+        && data.whatsappNumber is string && data.whatsappNumber.size() >= 8 && data.whatsappNumber.size() <= 20
+        && data.whatsappNumber.matches('^[0-9+\\-\\s]+$')
+        && data.isOpen is bool
+        && data.taxPercent is number && data.taxPercent >= 0 && data.taxPercent <= 25
+        && data.serviceFee is number && data.serviceFee >= 0 && data.serviceFee <= 50000
+        && data.qrisMerchantName is string && data.qrisMerchantName.size() >= 2 && data.qrisMerchantName.size() <= 80
+        && data.qrisNmid is string && data.qrisNmid.size() >= 6 && data.qrisNmid.size() <= 40
+        && data.qrisNmid.matches('^[A-Za-z0-9\\-]+$')
+        && (!('qrisImageUrl' in data) || (data.qrisImageUrl is string && data.qrisImageUrl.size() <= 260000))
+        && data.bankName is string && data.bankName.size() >= 2 && data.bankName.size() <= 40
+        && data.bankAccountNumber is string && data.bankAccountNumber.size() >= 6 && data.bankAccountNumber.size() <= 30
+        && data.bankAccountNumber.matches('^[0-9\\-]+$')
+        && data.bankAccountHolder is string && data.bankAccountHolder.size() >= 2 && data.bankAccountHolder.size() <= 80
+        && data.ewalletLabel is string && data.ewalletLabel.size() >= 2 && data.ewalletLabel.size() <= 80
+        && data.enabledPayments is list && data.enabledPayments.size() >= 1 && data.enabledPayments.size() <= 4
+        && data.enabledPayments[0] is string
+        && data.enabledPayments.hasOnly(['qris', 'va_bank', 'ewallet', 'cashier'])
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidMenuItem(data) {
+      return data.keys().hasAll([
+          'name', 'category', 'description', 'price', 'imageUrl',
+          'isAvailable', 'isFeatured', 'prepMinutes', 'sortOrder', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'name', 'category', 'description', 'price', 'imageUrl',
+          'isAvailable', 'isFeatured', 'prepMinutes', 'sortOrder', 'updatedAt'
+        ])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 100
+        && data.category in [
+          'Coffee & Espresso', 'Non-Coffee', 'Pastry & Makanan', 'Paket Ngopi',
+          'Makanan Berat', 'Minuman', 'Camilan', 'Paket Hemat'
+        ]
+        && data.description is string && data.description.size() >= 4 && data.description.size() <= 300
+        && data.price is number && data.price >= 0 && data.price <= 10000000
+        && data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 500
+        && data.isAvailable is bool
+        && data.isFeatured is bool
+        && data.prepMinutes is number && data.prepMinutes >= 1 && data.prepMinutes <= 120
+        && data.sortOrder is number && data.sortOrder >= 0 && data.sortOrder <= 9999
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidQrTable(data) {
+      return data.keys().hasAll(['code', 'label', 'area', 'isActive', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['code', 'label', 'area', 'isActive', 'createdAt', 'updatedAt'])
+        && data.code is string && data.code.size() >= 2 && data.code.size() <= 40
+        && data.code.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.label is string && data.label.size() >= 2 && data.label.size() <= 60
+        && data.area in ['Dine-In', 'Takeaway', 'Delivery', 'Event']
+        && data.isActive is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'orderCode', 'tableCode', 'tableLabel', 'orderType', 'customerAlias',
+          'items', 'subtotal', 'taxAmount', 'serviceFee', 'totalAmount',
+          'paymentMethod', 'paymentStatus', 'paymentRef', 'orderStatus',
+          'notes', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'orderCode', 'tableCode', 'tableLabel', 'orderType', 'customerAlias',
+          'customerUid', 'items', 'subtotal', 'taxAmount', 'serviceFee',
+          'totalAmount', 'paymentMethod', 'paymentStatus', 'paymentRef',
+          'orderStatus', 'notes', 'createdAt', 'updatedAt'
+        ])
+        && data.orderCode is string && data.orderCode.size() >= 4 && data.orderCode.size() <= 32
+        && data.orderCode.matches('^[A-Z0-9\\-]+$')
+        && data.tableCode is string && data.tableCode.size() >= 2 && data.tableCode.size() <= 40
+        && data.tableCode.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.tableLabel is string && data.tableLabel.size() >= 2 && data.tableLabel.size() <= 60
+        && data.orderType in ['dine_in', 'takeaway', 'delivery']
+        && data.customerAlias is string && data.customerAlias.size() >= 2 && data.customerAlias.size() <= 60
+        && (!('customerUid' in data) || (data.customerUid is string && data.customerUid.size() <= 128))
+        && data.items is list && data.items.size() >= 1 && data.items.size() <= 25
+        && data.items[0] is map
+        && data.items[0].keys().hasAll(['menuItemId', 'name', 'price', 'qty'])
+        && data.items[0].keys().hasOnly(['menuItemId', 'name', 'price', 'qty', 'note'])
+        && data.items[0].menuItemId is string && data.items[0].menuItemId.size() <= 128
+        && data.items[0].name is string && data.items[0].name.size() >= 1 && data.items[0].name.size() <= 100
+        && data.items[0].price is number && data.items[0].price >= 0 && data.items[0].price <= 10000000
+        && data.items[0].qty is number && data.items[0].qty >= 1 && data.items[0].qty <= 99
+        && (!('note' in data.items[0]) || (data.items[0].note is string && data.items[0].note.size() <= 120))
+        && data.subtotal is number && data.subtotal > 0 && data.subtotal <= 100000000
+        && data.taxAmount is number && data.taxAmount >= 0 && data.taxAmount <= 25000000
+        && data.serviceFee is number && data.serviceFee >= 0 && data.serviceFee <= 100000
+        && data.totalAmount is number && data.totalAmount > 0 && data.totalAmount <= 125100000
+        && data.paymentMethod in ['qris', 'va_bank', 'ewallet', 'cashier']
+        && data.paymentStatus in ['unpaid', 'verifying', 'paid', 'failed']
+        && data.paymentRef is string && data.paymentRef.size() <= 80
+        && data.orderStatus in ['new', 'preparing', 'ready', 'completed', 'cancelled']
+        && data.notes is string && data.notes.size() <= 240
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidOrderPrivateContact(data) {
+      return data.keys().hasAll(['orderId', 'customerPhone', 'deliveryAddress', 'createdAt'])
+        && data.keys().hasOnly(['orderId', 'customerUid', 'customerPhone', 'deliveryAddress', 'createdAt'])
+        && isValidId(data.orderId)
+        && (!('customerUid' in data) || (data.customerUid is string && data.customerUid.size() <= 128))
+        && data.customerPhone is string && data.customerPhone.size() >= 6 && data.customerPhone.size() <= 25
+        && data.deliveryAddress is string && data.deliveryAddress.size() <= 250
+        && data.createdAt is timestamp
+        && data.createdAt == request.time;
+    }
+
+    function isValidOrderStatusLookup(data) {
+      return data.keys().hasAll(['orderId', 'orderCode', 'tableLabel', 'totalAmount', 'paymentMethod', 'paymentStatus', 'orderStatus', 'updatedAt'])
+        && data.keys().hasOnly(['orderId', 'orderCode', 'tableLabel', 'totalAmount', 'paymentMethod', 'paymentStatus', 'orderStatus', 'updatedAt'])
+        && isValidId(data.orderId)
+        && data.orderCode is string && data.orderCode.size() >= 4 && data.orderCode.size() <= 32
+        && data.orderCode.matches('^[A-Z0-9\\-]+$')
+        && data.tableLabel is string && data.tableLabel.size() >= 2 && data.tableLabel.size() <= 60
+        && data.totalAmount is number && data.totalAmount > 0
+        && data.paymentMethod in ['qris', 'va_bank', 'ewallet', 'cashier']
+        && data.paymentStatus in ['unpaid', 'verifying', 'paid', 'failed']
+        && data.orderStatus in ['new', 'preparing', 'ready', 'completed', 'cancelled']
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['email', 'role', 'createdAt'])
+        && data.keys().hasOnly(['email', 'role', 'createdAt'])
+        && data.email is string && data.email.size() >= 4 && data.email.size() <= 120
+        && data.role in ['owner', 'cashier']
+        && data.createdAt is timestamp;
+    }
+
+    // 4. Collection Rules
+    match /store_config/{storeId} {
+      allow get: if isValidId(storeId);
+      allow list: if false;
+      allow create, update: if isAdmin() && isValidId(storeId) && isValidStoreConfig(incoming());
+      allow delete: if false;
+    }
+
+    match /menu_items/{itemId} {
+      allow get: if isValidId(itemId);
+      allow list: if request.query.limit <= 100;
+      allow create, update: if isAdmin() && isValidId(itemId) && isValidMenuItem(incoming());
+      allow delete: if isAdmin() && isValidId(itemId);
+    }
+
+    match /qr_tables/{tableId} {
+      allow get: if isValidId(tableId);
+      allow list: if request.query.limit <= 100;
+      allow create: if isAdmin() && isValidId(tableId) && isValidQrTable(incoming()) && incoming().createdAt == request.time;
+      allow update: if isAdmin() && isValidId(tableId) && isValidQrTable(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(tableId);
+    }
+
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (
+        isAdmin() ||
+        (isSignedIn() && 'customerUid' in existing() && existing().customerUid == request.auth.uid) ||
+        orderId.size() >= 16
+      );
+      allow list: if isAdmin() || (isSignedIn() && resource.data.customerUid == request.auth.uid);
+
+      allow create: if isValidId(orderId)
+        && orderId.size() >= 16
+        && isValidOrder(incoming())
+        && (!('customerUid' in incoming()) || (isSignedIn() && incoming().customerUid == request.auth.uid))
+        && incoming().createdAt == request.time
+        && incoming().paymentStatus == 'unpaid'
+        && incoming().orderStatus == 'new'
+        && existsAfter(/databases/$(database)/documents/order_status_lookup/$(incoming().orderCode));
+
+      allow update: if isValidId(orderId) && isValidOrder(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().orderCode == existing().orderCode
+        && (
+          (!('customerUid' in existing()) && !('customerUid' in incoming())) ||
+          ('customerUid' in existing() && 'customerUid' in incoming() && incoming().customerUid == existing().customerUid)
+        )
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['paymentStatus', 'paymentRef', 'orderStatus', 'notes', 'updatedAt']))
+          ||
+          (
+            !(existing().orderStatus in ['completed', 'cancelled'])
+            && existing().paymentStatus == 'unpaid'
+            && incoming().paymentStatus == 'verifying'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['paymentStatus', 'paymentRef', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isAdmin() && isValidId(orderId);
+
+      match /private/{docId} {
+        allow get: if isValidId(orderId) && docId == 'contact' && (
+          isAdmin() ||
+          (isSignedIn() && 'customerUid' in existing() && existing().customerUid == request.auth.uid)
+        );
+        allow list: if false;
+        allow create: if isValidId(orderId) && docId == 'contact'
+          && isValidOrderPrivateContact(incoming())
+          && (!('customerUid' in incoming()) || (isSignedIn() && incoming().customerUid == request.auth.uid))
+          && incoming().orderId == orderId
+          && existsAfter(/databases/$(database)/documents/orders/$(orderId));
+        allow update, delete: if false;
+      }
+    }
+
+    match /order_status_lookup/{orderCode} {
+      allow get: if isValidId(orderCode);
+      allow list: if false;
+      allow create: if isValidId(orderCode)
+        && isValidOrderStatusLookup(incoming())
+        && incoming().orderCode == orderCode
+        && incoming().paymentStatus == 'unpaid'
+        && incoming().orderStatus == 'new'
+        && existsAfter(/databases/$(database)/documents/orders/$(incoming().orderId));
+      allow update: if isValidId(orderCode)
+        && isValidOrderStatusLookup(incoming())
+        && incoming().orderCode == existing().orderCode
+        && incoming().orderId == existing().orderId
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['paymentStatus', 'orderStatus', 'updatedAt']))
+          ||
+          (
+            !(existing().orderStatus in ['completed', 'cancelled'])
+            && existing().paymentStatus == 'unpaid'
+            && incoming().paymentStatus == 'verifying'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['paymentStatus', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(orderCode);
+    }
+
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && (isAdmin() || (isSignedIn() && request.auth.uid == uid));
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && isValidId(uid) && isValidAdminUser(incoming()) && incoming().createdAt == request.time;
+      allow delete: if isAdmin() && isValidId(uid);
+    }
+  }
+}
